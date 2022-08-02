@@ -5,10 +5,10 @@ import platform
 import subprocess
 
 BASE_GETTER_CONST = "github.com/armosec/kubescape/v2/core/cautils/getter"
-BE_SERVER_CONST   = BASE_GETTER_CONST + ".ArmoBEURL"
-ER_SERVER_CONST   = BASE_GETTER_CONST + ".ArmoERURL"
-WEBSITE_CONST     = BASE_GETTER_CONST + ".ArmoFEURL"
-AUTH_SERVER_CONST = BASE_GETTER_CONST + ".armoAUTHURL"
+BE_SERVER_CONST = f"{BASE_GETTER_CONST}.ArmoBEURL"
+ER_SERVER_CONST = f"{BASE_GETTER_CONST}.ArmoERURL"
+WEBSITE_CONST = f"{BASE_GETTER_CONST}.ArmoFEURL"
+AUTH_SERVER_CONST = f"{BASE_GETTER_CONST}.armoAUTHURL"
 
 def checkStatus(status, msg):
     if status != 0:
@@ -20,16 +20,15 @@ def getBuildDir():
     currentPlatform = platform.system()
     buildDir = "build/"
 
-    if currentPlatform == "Windows": return os.path.join(buildDir, "windows-latest") 
-    if currentPlatform == "Linux": return os.path.join(buildDir, "ubuntu-latest")  
-    if currentPlatform == "Darwin": return os.path.join(buildDir, "macos-latest")  
-    raise OSError("Platform %s is not supported!" % (currentPlatform))
+    if currentPlatform == "Windows": return os.path.join(buildDir, "windows-latest")
+    if currentPlatform == "Linux": return os.path.join(buildDir, "ubuntu-latest")
+    if currentPlatform == "Darwin": return os.path.join(buildDir, "macos-latest")
+    raise OSError(f"Platform {currentPlatform} is not supported!")
 
 def getPackageName():
-    packageName = "kubescape"
     # if platform.system() == "Windows": packageName += ".exe"
 
-    return packageName
+    return "kubescape"
 
 
 def main():
@@ -40,7 +39,6 @@ def main():
 
     # Set some variables
     packageName = getPackageName()
-    buildUrl = "github.com/armosec/kubescape/v2/core/cautils.BuildNumber"
     releaseVersion = os.getenv("RELEASE")
     ArmoBEServer = os.getenv("ArmoBEServer")
     ArmoERServer = os.getenv("ArmoERServer")
@@ -51,7 +49,7 @@ def main():
     buildDir = getBuildDir()
 
     ks_file = os.path.join(buildDir, packageName)
-    hash_file = ks_file + ".sha256"
+    hash_file = f"{ks_file}.sha256"
 
     if not os.path.isdir(buildDir):
         os.makedirs(buildDir)
@@ -59,30 +57,31 @@ def main():
     # Build kubescape
     ldflags = "-w -s"
     if releaseVersion:
-        ldflags += " -X {}={}".format(buildUrl, releaseVersion)
+        buildUrl = "github.com/armosec/kubescape/v2/core/cautils.BuildNumber"
+        ldflags += f" -X {buildUrl}={releaseVersion}"
     if ArmoBEServer:
-        ldflags += " -X {}={}".format(BE_SERVER_CONST, ArmoBEServer)
+        ldflags += f" -X {BE_SERVER_CONST}={ArmoBEServer}"
     if ArmoERServer:
-        ldflags += " -X {}={}".format(ER_SERVER_CONST, ArmoERServer)
+        ldflags += f" -X {ER_SERVER_CONST}={ArmoERServer}"
     if ArmoWebsite:
-        ldflags += " -X {}={}".format(WEBSITE_CONST, ArmoWebsite)
+        ldflags += f" -X {WEBSITE_CONST}={ArmoWebsite}"
     if ArmoAuthServer:
-        ldflags += " -X {}={}".format(AUTH_SERVER_CONST, ArmoAuthServer)
+        ldflags += f" -X {AUTH_SERVER_CONST}={ArmoAuthServer}"
 
     build_command = ["go", "build", "-o", ks_file, "-ldflags" ,ldflags]
 
-    print("Building kubescape and saving here: {}".format(ks_file))
-    print("Build command: {}".format(" ".join(build_command)))
+    print(f"Building kubescape and saving here: {ks_file}")
+    print(f'Build command: {" ".join(build_command)}')
 
     status = subprocess.call(build_command)
     checkStatus(status, "Failed to build kubescape")
-    
+
     sha256 = hashlib.sha256()
     with open(ks_file, "rb") as kube:
         sha256.update(kube.read())
         with open(hash_file, "w") as kube_sha:
             hash = sha256.hexdigest()
-            print("kubescape hash: {}, file: {}".format(hash, hash_file))
+            print(f"kubescape hash: {hash}, file: {hash_file}")
             kube_sha.write(sha256.hexdigest())
 
     print("Build Done")
